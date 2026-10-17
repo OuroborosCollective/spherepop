@@ -51,7 +51,11 @@ func (s State) Clone() State {
 	for b := range s.Bound {
 		out.Bound[b] = struct{}{}
 	}
-	out.Refused = append([]Refusal(nil), s.Refused...)
+	for _, refused := range s.Refused {
+		if refused.Target != nil { v := *refused.Target; refused.Target = &v }
+		if refused.Other != nil { v := *refused.Other; refused.Other = &v }
+		out.Refused = append(out.Refused, refused)
+	}
 	out.Observed = append([]Observation(nil), s.Observed...)
 	return out
 }
@@ -66,7 +70,8 @@ func Apply(s *State, e Event) {
 		if e.Reason != nil {
 			r = *e.Reason
 		}
-		s.Refused = append(s.Refused, Refusal{e.Pos, e.A, e.B, r})
+		copied := cloneEvent(e)
+		s.Refused = append(s.Refused, Refusal{e.Pos, copied.A, copied.B, r})
 	case Bind:
 		t := ""
 		if e.Tag != nil {
