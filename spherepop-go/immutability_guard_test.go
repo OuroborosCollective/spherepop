@@ -40,3 +40,27 @@ func TestReplayProjectionCannotMutateHistory(t *testing.T) {
 		t.Fatalf("state projection mutated authoritative history: got %d", got)
 	}
 }
+
+func TestOverlayCreationSnapshotsProposalFields(t *testing.T) {
+	a := NewArbiter([]ObjectID{1, 2}, nil)
+	manager := NewOverlayManager(a)
+	proposal := NewProposal(PopEvent(1))
+	overlay := manager.Create(proposal)
+	*proposal.Events[0].A = 2
+
+	preview := manager.Preview(overlay)
+	if _, ok := preview.Committed[1]; !ok {
+		t.Fatal("overlay preview changed after its source proposal was modified")
+	}
+	if _, ok := preview.Committed[2]; ok {
+		t.Fatal("overlay preview used modified caller-owned event")
+	}
+	positions, err := manager.Commit(overlay)
+	if err != nil { t.Fatal(err) }
+	if len(positions) != 1 || positions[0] != 0 {
+		t.Fatalf("unexpected commit positions: %v", positions)
+	}
+	if _, ok := a.State().Committed[1]; !ok {
+		t.Fatal("overlay commit used modified caller-owned event")
+	}
+}
