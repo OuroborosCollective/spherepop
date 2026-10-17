@@ -48,6 +48,40 @@ static void test_refusal_values(void) {
     objset_free(&omega);
 }
 
+static void test_event_positions_are_observable(void) {
+    State left, right;
+    ObjectSet omega;
+    state_pair(&left, &right, &omega);
+    Event refuse = event_refuse(1, "not ready");
+    Event bind = event_bind(1, 2, "adjacent");
+    state_apply(&left, &refuse);
+    state_apply(&left, &bind);
+    state_apply(&right, &bind);
+    state_apply(&right, &refuse);
+    CHECK(!state_equals(&left, &right),
+          "same refusal values at distinct event positions must not compare equal");
+    event_free(&refuse);
+    event_free(&bind);
+    state_free(&left);
+    state_free(&right);
+    objset_free(&omega);
+
+    state_pair(&left, &right, &omega);
+    Event collapse = event_collapse("identity");
+    bind = event_bind(1, 2, "adjacent");
+    state_apply(&left, &collapse);
+    state_apply(&left, &bind);
+    state_apply(&right, &bind);
+    state_apply(&right, &collapse);
+    CHECK(!state_equals(&left, &right),
+          "same Collapse rule at distinct event positions must not compare equal");
+    event_free(&collapse);
+    event_free(&bind);
+    state_free(&left);
+    state_free(&right);
+    objset_free(&omega);
+}
+
 static void test_duplicate_binds_are_a_set(void) {
     State a, b;
     ObjectSet omega;
@@ -68,6 +102,7 @@ static void test_duplicate_binds_are_a_set(void) {
 int main(void) {
     test_refusal_values();
     test_duplicate_binds_are_a_set();
+    test_event_positions_are_observable();
     if (failures) { fprintf(stderr, "%d canonical state regressions\n", failures); return 1; }
     puts("PASS: canonical C refusal equality and Bind-set invariants");
     return 0;
