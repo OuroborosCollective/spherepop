@@ -115,6 +115,7 @@ void boundlist_free(BoundList *l) {
     l->items = NULL; l->len = l->cap = 0;
 }
 void boundlist_add(BoundList *l, ObjectId a, ObjectId b, const char *tag) {
+    if (boundlist_contains(l, a, b, tag)) return;
     if (l->len >= l->cap) { l->cap = l->cap ? l->cap * 2 : 4; l->items = realloc(l->items, l->cap * sizeof(BoundFact)); }
     l->items[l->len].a = a;
     l->items[l->len].b = b;
@@ -203,6 +204,10 @@ bool state_equals(const State *a, const State *b) {
     for (size_t i = 0; i < a->bound.len; i++)
         if (!boundlist_contains(&b->bound, a->bound.items[i].a, a->bound.items[i].b, a->bound.items[i].tag)) return false;
     if (a->refused.len != b->refused.len) return false;
+    for (size_t i = 0; i < a->refused.len; i++) {
+        if (a->refused.items[i].a != b->refused.items[i].a ||
+            strcmp(a->refused.items[i].reason, b->refused.items[i].reason) != 0) return false;
+    }
     if (a->observed.len != b->observed.len) return false;
     for (size_t i = 0; i < a->observed.len; i++)
         if (strcmp(a->observed.items[i].rule, b->observed.items[i].rule) != 0) return false;
