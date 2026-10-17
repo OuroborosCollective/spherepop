@@ -85,26 +85,37 @@ func NewHistory() History  { return History{} }
 func (h History) Len() int { return len(h.events) }
 
 func (h History) Events() []Event {
-	return append([]Event(nil), h.events...)
+	out := make([]Event, len(h.events))
+	for i, e := range h.events { out[i] = cloneEvent(e) }
+	return out
+}
+
+func cloneEvent(e Event) Event {
+	if e.A != nil { a := *e.A; e.A = &a }
+	if e.B != nil { b := *e.B; e.B = &b }
+	if e.Tag != nil { tag := *e.Tag; e.Tag = &tag }
+	if e.Reason != nil { reason := *e.Reason; e.Reason = &reason }
+	if e.Rule != nil { rule := *e.Rule; e.Rule = &rule }
+	return e
 }
 
 func (h History) EventsOfKind(kind EventKind) []Event {
 	out := make([]Event, 0)
 	for _, e := range h.events {
 		if e.Kind == kind {
-			out = append(out, e)
+			out = append(out, cloneEvent(e))
 		}
 	}
 	return out
 }
 
-func (h *History) append(e Event) { h.events = append(h.events, e) }
+func (h *History) append(e Event) { h.events = append(h.events, cloneEvent(e)) }
 
 // Meld is structural composition of histories, not a fifth primitive.
 func (h History) Meld(other History) History {
 	out := NewHistory()
-	out.events = append(out.events, h.events...)
-	out.events = append(out.events, other.events...)
+	out.events = append(out.events, h.Events()...)
+	out.events = append(out.events, other.Events()...)
 	for i := range out.events {
 		out.events[i].Pos = LogPos(i)
 	}
