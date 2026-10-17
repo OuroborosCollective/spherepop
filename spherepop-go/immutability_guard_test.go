@@ -30,3 +30,13 @@ func TestHistoryAppendDetachesProposalEventFields(t *testing.T) {
 		t.Fatal("mutable proposal tag changed committed history")
 	}
 }
+
+func TestReplayProjectionCannotMutateHistory(t *testing.T) {
+	a := NewArbiter([]ObjectID{1}, nil)
+	if _, err := a.Submit(NewProposal(RefuseEvent(1, "original"))); err != nil { t.Fatal(err) }
+	projected := a.State()
+	*projected.Refused[0].Target = 999
+	if got := *a.State().Refused[0].Target; got != 1 {
+		t.Fatalf("state projection mutated authoritative history: got %d", got)
+	}
+}
